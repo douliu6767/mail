@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>邮箱收件</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h2>收件箱</h2>
+    <form id="mailForm">
+        <label>请输入邮箱地址：</label>
+        <input type="email" name="email" required>
+        <button type="submit">获取最新邮件</button>
+    </form>
+    <div id="result"></div>
+    <script>
+    document.getElementById('mailForm').onsubmit = function(e){
+        e.preventDefault();
+        let email = this.email.value;
+        fetch('api.php?action=fetch_mail&email=' + encodeURIComponent(email))
+        .then(res=>res.json())
+        .then(data=>{
+            let div = document.getElementById('result');
+            if(data.success && data.mail){
+                div.innerHTML = `<b>主题:</b> ${data.mail.subject}<br>
+                                 <b>发件人:</b> ${data.mail.from}<br>
+                                 <b>日期:</b> ${data.mail.date}<br>
+                                 <b>正文:</b> <pre>${data.mail.body}</pre>`;
+            }else{
+                div.textContent = data.msg || '获取邮件失败';
+            }
+        });
+    }
+    </script>
+</body>
+</html>
