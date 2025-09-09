@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>管理员登录 - 逗留邮箱管理平台</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+    body { 
+        margin: 0; 
+        padding: 0; 
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+    }
+    .login-container {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        padding: 60px 80px;
+        max-width: 400px;
+        width: 100%;
+    }
+    .login-title {
+        color: #e00;
+        font-size: 28px;
+        text-align: center;
+        margin-bottom: 40px;
+        font-weight: bold;
+        letter-spacing: 2px;
+    }
+    .form-group {
+        margin-bottom: 25px;
+    }
+    label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+    }
+    input[type="text"], input[type="password"] {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e5e5e5;
+        border-radius: 6px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+        box-sizing: border-box;
+    }
+    input[type="text"]:focus, input[type="password"]:focus {
+        outline: none;
+        border-color: #e00;
+    }
+    .login-btn {
+        width: 100%;
+        padding: 15px;
+        background: #e00;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .login-btn:hover {
+        background: #c00;
+    }
+    .error-msg {
+        color: #e00;
+        text-align: center;
+        margin-top: 15px;
+        font-size: 14px;
+    }
+    .back-link {
+        text-align: center;
+        margin-top: 30px;
+    }
+    .back-link a {
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+    }
+    .back-link a:hover {
+        color: #e00;
+    }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-title">逗留邮箱管理平台</div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">管理员账号:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="login-btn">登录</button>
+            <div id="errorMsg" class="error-msg"></div>
+        </form>
+        <div class="back-link">
+            <a href="index.html">← 返回邮箱收件页面</a>
+        </div>
+    </div>
+
+    <script>
+    document.getElementById('loginForm').onsubmit = function(e) {
+        e.preventDefault();
+        
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.textContent = '';
+        
+        const formData = {
+            username: this.username.value,
+            password: this.password.value
+        };
+        
+        fetch('api.php?action=login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 登录成功，跳转到管理后台
+                window.location.href = 'admin.html';
+            } else {
+                // 显示错误信息
+                errorMsg.textContent = data.msg || '登录失败，请检查账号密码';
+            }
+        })
+        .catch(error => {
+            console.error('Login error:', error);
+            errorMsg.textContent = '网络错误，请稍后重试';
+        });
+    };
+    </script>
+</body>
+</html>
