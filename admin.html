@@ -226,9 +226,21 @@ function loadAccounts(){
         let ul = document.getElementById('accountList'); ul.innerHTML='';
         (data.data||[]).forEach(acc=>{
             let li = document.createElement('li');
-            li.textContent = acc.email+' ('+acc.imap_host+')';
+            li.innerHTML = `${acc.email} (${acc.imap_host}) <button onclick="deleteAccount(${acc.id})" style="margin-left:10px;color:#e00;">删除</button>`;
             ul.appendChild(li);
         });
+    });
+}
+
+// 删除邮箱账号
+function deleteAccount(id) {
+    if (!confirm('确定要删除这个邮箱账号吗？')) return;
+    fetch('api.php?action=delete_account', {
+        method: 'POST',
+        body: JSON.stringify({id: id})
+    }).then(res => res.json()).then(data => {
+        document.getElementById('msg').textContent = data.msg || (data.success ? '删除成功' : '删除失败');
+        if (data.success) loadAccounts();
     });
 }
 

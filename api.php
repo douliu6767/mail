@@ -2,13 +2,15 @@
 session_start();
 header('Content-Type: application/json');
 
-// 数据库初始化
-$db = new PDO('sqlite:db.sqlite');
-$db->exec("CREATE TABLE IF NOT EXISTS admin (
+// 数据库初始化 - 分离管理员和邮箱账号数据库
+$admin_db = new PDO('sqlite:admin_users.db');
+$mail_db = new PDO('sqlite:mail_accounts.db');
+
+$admin_db->exec("CREATE TABLE IF NOT EXISTS admin (
     username TEXT PRIMARY KEY,
     password TEXT
 )");
-$db->exec("CREATE TABLE IF NOT EXISTS accounts (
+$mail_db->exec("CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE,
     imap_host TEXT,
@@ -18,9 +20,20 @@ $db->exec("CREATE TABLE IF NOT EXISTS accounts (
 )");
 
 // 初始化默认管理员账号
-if (!$db->query("SELECT * FROM admin")->fetch(PDO::FETCH_ASSOC)) {
-    $stmt = $db->prepare("INSERT INTO admin (username, password) VALUES (?, ?)");
+if (!$admin_db->query("SELECT * FROM admin")->fetch(PDO::FETCH_ASSOC)) {
+    $stmt = $admin_db->prepare("INSERT INTO admin (username, password) VALUES (?, ?)");
     $stmt->execute(["admin", password_hash("admin123", PASSWORD_DEFAULT)]);
+}
+
+// 密码加密解密函数（简单的对称加密）
+function encrypt_password($password) {
+    $key = 'mail_system_key_2024'; // 在实际应用中应该使用更安全的密钥
+    return base64_encode(openssl_encrypt($password, 'AES-128-ECB', $key));
+}
+
+function decrypt_password($encrypted_password) {
+    $key = 'mail_system_key_2024';
+    return openssl_decrypt(base64_decode($encrypted_password), 'AES-128-ECB', $key);
 }
 
 // 路由
@@ -29,7 +42,7 @@ $action = $_GET['action'] ?? '';
 // 管理员登录
 if ($action == 'login') {
     $data = json_decode(file_get_contents('php://input'), true);
-    $admin = $db->query("SELECT * FROM admin WHERE username = " . $db->quote($data['username']))->fetch(PDO::FETCH_ASSOC);
+    $admin = $admin_db->query("SELECT * FROM admin WHERE username = " . $admin_db->quote($data['username']))->fetch(PDO::FETCH_ASSOC);
     if ($admin && password_verify($data['password'], $admin['password'])) {
         $_SESSION['admin'] = $admin['username'];
         echo json_encode(['success' => true]);
@@ -55,7 +68,7 @@ function check_admin() {
 if ($action == 'change_admin' && check_admin()) {
     $data = json_decode(file_get_contents('php://input'), true);
     $new_username = $data['username'];
-    $stmt = $db->prepare("UPDATE admin SET username=?");
+    $stmt = $admin_db->prepare("UPDATE admin SET username=?");
     $ok = $stmt->execute([$new_username]);
     if ($ok) {
         $_SESSION['admin'] = $new_username;
@@ -70,7 +83,7 @@ if ($action == 'change_admin' && check_admin()) {
 if ($action == 'change_password' && check_admin()) {
     $data = json_decode(file_get_contents('php://input'), true);
     $new_password = password_hash($data['password'], PASSWORD_DEFAULT);
-    $stmt = $db->prepare("UPDATE admin SET password=? WHERE username=?");
+    $stmt = $admin_db->prepare("UPDATE admin SET password=? WHERE username=?");
     $ok = $stmt->execute([$new_password, $_SESSION['admin']]);
     echo json_encode(['success' => $ok]);
     exit;
@@ -79,9 +92,10 @@ if ($action == 'change_password' && check_admin()) {
 // 添加邮箱账号（需登录）
 if ($action == 'add_account' && check_admin()) {
     $data = json_decode(file_get_contents('php://input'), true);
-    $stmt = $db->prepare("INSERT INTO accounts (email, imap_host, imap_port, username, password) VALUES (?, ?, ?, ?, ?)");
+    $encrypted_password = encrypt_password($data['password']);
+    $stmt = $mail_db->prepare("INSERT INTO accounts (email, imap_host, imap_port, username, password) VALUES (?, ?, ?, ?, ?)");
     $ok = $stmt->execute([
-        $data['email'], $data['imap_host'], $data['imap_port'], $data['username'], $data['password']
+        $data['email'], $data['imap_host'], $data['imap_port'], $data['username'], $encrypted_password
     ]);
     if ($ok) {
         echo json_encode(['success' => true]);
@@ -93,20 +107,30 @@ if ($action == 'add_account' && check_admin()) {
 
 // 查询所有邮箱账号（需登录）
 if ($action == 'list_accounts' && check_admin()) {
-    $rows = $db->query("SELECT id,email,imap_host,imap_port,username FROM accounts")->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $mail_db->query("SELECT id,email,imap_host,imap_port,username FROM accounts")->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode(['success' => true, 'data' => $rows]);
+    exit;
+}
+
+// 删除邮箱账号（需登录）
+if ($action == 'delete_account' && check_admin()) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $stmt = $mail_db->prepare("DELETE FROM accounts WHERE id=?");
+    $ok = $stmt->execute([$data['id']]);
+    echo json_encode(['success' => $ok, 'msg' => $ok ? '删除成功' : '删除失败']);
     exit;
 }
 
 // 获取邮箱最新一封邮件（前端用）
 if ($action == 'fetch_mail') {
     $email = $_GET['email'] ?? '';
-    $row = $db->query("SELECT * FROM accounts WHERE email=" . $db->quote($email))->fetch(PDO::FETCH_ASSOC);
+    $row = $mail_db->query("SELECT * FROM accounts WHERE email=" . $mail_db->quote($email))->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         echo json_encode(['success' => false, 'msg' => '该邮箱未添加']);
         exit;
     }
-    $inbox = @imap_open('{' . $row['imap_host'] . ':' . $row['imap_port'] . '/imap/ssl}INBOX', $row['username'], $row['password']);
+    $decrypted_password = decrypt_password($row['password']);
+    $inbox = @imap_open('{' . $row['imap_host'] . ':' . $row['imap_port'] . '/imap/ssl}INBOX', $row['username'], $decrypted_password);
     if ($inbox) {
         $emails = imap_search($inbox, 'ALL');
         $mail = null;
