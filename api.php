@@ -46,6 +46,12 @@ if ($action == 'logout') {
     exit;
 }
 
+// 检查登录状态
+if ($action == 'check_login') {
+    echo json_encode(['success' => check_admin()]);
+    exit;
+}
+
 // 检查是否登录
 function check_admin() {
     return isset($_SESSION['admin']);

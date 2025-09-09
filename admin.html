@@ -126,16 +126,7 @@
         <p id="msg"></p>
     </div>
 </div>
-<!-- 登录弹窗 -->
-<div id="loginModal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;z-index:9;">
-    <form id="loginForm" style="background:#fff;border-radius:8px;box-shadow:0 0 20px #eee;padding:40px 60px;">
-        <h2 style="color:#e00;text-align:center;">管理员登录</h2>
-        <label>账号:</label><input type="text" name="username" required><br>
-        <label>密码:</label><input type="password" name="password" required><br>
-        <button type="submit" style="width:100%;margin-top:20px;">登录</button>
-        <div id="loginMsg" style="color:#e00;margin-top:10px;text-align:center;"></div>
-    </form>
-</div>
+
 <script>
 function showSection(type){
     document.querySelectorAll('.sidebar-menu-item').forEach((el)=>{
@@ -151,32 +142,12 @@ function showSection(type){
     document.getElementById('msg').textContent = "";
     if(type==="mail") loadAccounts();
 }
-function showLogin(){
-    document.getElementById("loginModal").style.display="";
-}
-function hideLogin(){
-    document.getElementById("loginModal").style.display="none";
-}
-document.getElementById('loginForm').onsubmit = function(e){
-    e.preventDefault();
-    fetch('api.php?action=login', {
-        method: 'POST',
-        body: JSON.stringify({
-            username: this.username.value,
-            password: this.password.value
-        })
-    }).then(res => res.json()).then(data => {
-        if(data.success){
-            hideLogin();
-            showSection('home');
-            loadAccounts();
-        }else{
-            document.getElementById('loginMsg').textContent=data.msg;
-        }
-    });
-};
+
 function logout(){
-    fetch('api.php?action=logout').then(()=>{location.reload();});
+    fetch('api.php?action=logout').then(()=>{
+        // 退出后跳转到登录页面
+        window.location.href = 'login.html';
+    });
 }
 
 // 修改账号
@@ -232,9 +203,24 @@ function loadAccounts(){
     });
 }
 
-// 首次加载弹窗登录
+// 页面加载时检查登录状态
 window.onload = function(){
-    showLogin();
+    // 检查是否已登录，如果未登录则跳转到登录页面
+    fetch('api.php?action=check_login')
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                // 未登录，跳转到登录页面
+                window.location.href = 'login.html';
+            } else {
+                // 已登录，加载邮箱列表
+                loadAccounts();
+            }
+        })
+        .catch(() => {
+            // 网络错误或其他问题，跳转到登录页面
+            window.location.href = 'login.html';
+        });
 };
 </script>
 </body>
