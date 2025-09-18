@@ -1,0 +1,911 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block head %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        padding: 20px;
+        animation: gradientShift 10s ease infinite;
+    }
+    
+    @keyframes gradientShift {
+        0%, 100% { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        50% { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); }
+    }
+    
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+        animation: fadeInDown 1s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .header h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .header p {
+        font-size: 16px;
+        opacity: 0.9;
+    }
+    
+    .mail-input-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.07);
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+        animation: fadeInUp 1s ease-out 0.3s both;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .input-group {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        position: relative;
+        align-items: stretch;
+    }
+    
+    .input-group input {
+        flex: 2;
+        padding: 18px 20px;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: rgba(255,255,255,0.9);
+        position: relative;
+    }
+    
+    .input-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: white;
+        transform: translateY(-2px);
+    }
+    
+    .input-group input:valid {
+        border-color: #28a745;
+    }
+    
+    .get-mail-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 18px 35px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        position: relative;
+        overflow: hidden;
+        flex: 0 0 auto;
+        min-width: 120px;
+    }
+    
+    .get-mail-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+    
+    .get-mail-btn:hover::before {
+        left: 100%;
+    }
+    
+    .get-mail-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    .get-mail-btn:active {
+        transform: translateY(-1px);
+    }
+    
+    .get-mail-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        color: #667eea;
+        font-size: 16px;
+        margin: 20px 0;
+        font-weight: 500;
+    }
+    
+    .loading::after {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #667eea;
+        border-radius: 50%;
+        border-top: 2px solid transparent;
+        animation: spin 1s linear infinite;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .mail-display {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.07);
+        display: none;
+        border: 1px solid rgba(255,255,255,0.2);
+        animation: fadeInUp 0.8s ease-out;
+    }
+    
+    .mail-header {
+        border-bottom: 2px solid #f1f1f1;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .mail-subject {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 15px;
+        line-height: 1.3;
+    }
+    
+    .mail-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .mail-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .mail-meta-label {
+        font-weight: 600;
+        color: #667eea;
+        min-width: 60px;
+    }
+    
+    .mail-body {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        border: 1px solid #e9ecef;
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+    
+    /* Image display styles */
+    .mail-images {
+        margin-top: 20px;
+    }
+    
+    .image-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .image-item {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+    
+    .image-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .image-item img {
+        max-width: 300px;
+        max-height: 200px;
+        width: auto;
+        height: auto;
+        display: block;
+        cursor: pointer;
+    }
+    
+    .image-info {
+        padding: 10px;
+        font-size: 12px;
+        color: #666;
+        border-top: 1px solid #eee;
+    }
+    
+    /* Attachments display styles */
+    .mail-attachments {
+        margin-top: 20px;
+    }
+    
+    .attachment-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .attachment-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        transition: background-color 0.2s ease;
+    }
+    
+    .attachment-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .attachment-icon {
+        font-size: 24px;
+        margin-right: 12px;
+        color: #667eea;
+    }
+    
+    .attachment-info {
+        flex: 1;
+    }
+    
+    .attachment-name {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 2px;
+    }
+    
+    .attachment-meta {
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .attachment-download {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .attachment-download:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Image modal styles */
+    .image-modal {
+        display: none;
+        position: fixed;
+        z-index: 3000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.8);
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .image-modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .image-modal-content {
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease;
+    }
+    
+    .image-modal-close {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        color: white;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 3001;
+    }
+    
+    .image-modal-close:hover {
+        opacity: 0.7;
+    }
+    
+    .message {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-weight: 500;
+    }
+    
+    .message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .message.info {
+        background: #cce7ff;
+        color: #004085;
+        border: 1px solid #b3d7ff;
+    }
+    
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 3000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 500px;
+    }
+    
+    .toast {
+        padding: 15px 20px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 500;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transform: translateX(550px);
+        opacity: 0;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+    }
+    
+    .toast.show {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    
+    .toast.success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .toast.error {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    
+    .toast.info {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    
+    .toast::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: rgba(255,255,255,0.8);
+        animation: toastProgress 3s linear;
+    }
+    
+    @keyframes toastProgress {
+        from { width: 100%; }
+        to { width: 0%; }
+    }
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 10px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .input-group {
+            flex-direction: column;
+        }
+        
+        .mail-input-card, .mail-display {
+            padding: 20px;
+        }
+        
+        .mail-meta {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- Toast notification container -->
+<div id="toast-container" class="toast-container"></div>
+
+<div class="container">
+    <div class="header">
+        <h1>📧 邮件查看系统</h1>
+        <p>输入已添加的邮箱账号查看最新邮件</p>
+    </div>
+    
+    <div class="mail-input-card">
+        <div class="input-group">
+            <input type="email" id="emailInput" placeholder="请输入邮箱地址 (例: user@example.com)" required>
+            <button class="get-mail-btn" onclick="getMail()">获取邮件</button>
+        </div>
+        
+        <div class="loading" id="loading">正在获取邮件，请稍候...</div>
+        
+        <div id="message"></div>
+    </div>
+    
+    <div class="mail-display" id="mailDisplay">
+        <div class="mail-header">
+            <div class="mail-subject" id="mailSubject"></div>
+            <div class="mail-meta">
+                <div class="mail-meta-item">
+                    <span class="mail-meta-label">发件人:</span>
+                    <span id="mailFrom"></span>
+                </div>
+                <div class="mail-meta-item">
+                    <span class="mail-meta-label">收件人:</span>
+                    <span id="mailTo"></span>
+                </div>
+                <div class="mail-meta-item">
+                    <span class="mail-meta-label">时间:</span>
+                    <span id="mailDate"></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mail-body" id="mailBody"></div>
+        
+        <!-- Images section -->
+        <div class="mail-images" id="mailImages" style="display: none;">
+            <h4 style="color: #667eea; margin-bottom: 10px;">📷 图片内容</h4>
+            <div class="image-container" id="imageContainer"></div>
+        </div>
+        
+        <!-- Attachments section -->
+        <div class="mail-attachments" id="mailAttachments" style="display: none;">
+            <h4 style="color: #667eea; margin-bottom: 10px;">📎 附件</h4>
+            <div class="attachment-list" id="attachmentList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="image-modal">
+    <span class="image-modal-close" onclick="closeImageModal()">&times;</span>
+    <img class="image-modal-content" id="modalImage">
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 回车键触发获取邮件
+    document.getElementById('emailInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            getMail();
+        }
+    });
+    
+    async function getMail() {
+        const emailInput = document.getElementById('emailInput');
+        const loading = document.getElementById('loading');
+        const message = document.getElementById('message');
+        const mailDisplay = document.getElementById('mailDisplay');
+        const getMailBtn = document.querySelector('.get-mail-btn');
+        
+        const email = emailInput.value.trim();
+        
+        if (!email) {
+            showToast('请输入邮箱地址', 'error');
+            return;
+        }
+        
+        if (!isValidEmail(email)) {
+            showToast('请输入有效的邮箱地址', 'error');
+            return;
+        }
+        
+        // 显示加载状态
+        loading.style.display = 'block';
+        loading.textContent = '正在获取邮件，请稍候...';
+        getMailBtn.disabled = true;
+        getMailBtn.textContent = '获取中...';
+        mailDisplay.style.display = 'none';
+        
+        try {
+            // 首先检查登录状态
+            const loginResponse = await fetch('/api/check_login', {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            
+            const loginData = await loginResponse.json();
+            let requestData = { email: email };
+            
+            // 如果未登录，显示Toast提示
+            if (!loginData.logged_in) {
+                showToast('您尚未登录管理员账户，请使用卡密方式访问邮件', 'warning', 5000);
+                // 未登录时仍然允许继续，但不传递登录状态
+            } else {
+                // 已登录，标记为管理员访问
+                requestData.admin_access = true;
+                showToast('已检测到管理员登录状态，免卡密访问', 'info', 3000);
+            }
+            
+            const response = await fetch('/api/get_mail', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(requestData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.mail) {
+                    displayMail(data.mail);
+                    // 组合成功消息包含连接状态
+                    let successMessage = '';
+                    if (data.proxy && data.proxy.enabled) {
+                        successMessage = '邮件获取成功（代理）';
+                    } else {
+                        successMessage = '邮件获取成功（直连）';
+                    }
+                    showMessage(successMessage, 'success');
+                } else {
+                    // 组合无邮件消息包含连接状态
+                    let noMailMessage = '邮箱中暂无邮件';
+                    if (data.proxy && data.proxy.enabled) {
+                        noMailMessage += ' (通过代理)';
+                    } else {
+                        noMailMessage += ' (直连)';
+                    }
+                    showMessage(noMailMessage, 'info');
+                }
+            } else {
+                // 组合失败消息包含连接状态 - 避免重复添加连接指示符
+                let errorMessage = data.message || '获取邮件失败';
+                
+                // 检查消息是否已经包含连接指示符，避免重复添加
+                const hasConnectionInfo = /\(直连\)|\(代理\)|\(通过.*\)|\(代理连接.*\)/.test(errorMessage);
+                
+                if (!hasConnectionInfo) {
+                    if (data.proxy && data.proxy.enabled) {
+                        if (data.proxy.info && data.proxy.info.name) {
+                            errorMessage += ` (代理连接: ${data.proxy.info.name})`;
+                        } else {
+                            errorMessage += ' (代理连接)';
+                        }
+                    } else {
+                        errorMessage += ' (直连)';
+                    }
+                }
+                showMessage(errorMessage, 'error');
+            }
+            
+        } catch (error) {
+            console.error('请求失败:', error);
+            showMessage('网络请求失败，请检查网络连接', 'error');
+        } finally {
+            // 隐藏加载状态
+            loading.style.display = 'none';
+            getMailBtn.disabled = false;
+            getMailBtn.textContent = '获取邮件';
+        }
+    }
+    
+    function displayMail(mail) {
+        document.getElementById('mailSubject').textContent = mail.subject || '(无主题)';
+        
+        // 显示发件人信息（后端已格式化为"名称 <邮箱地址>"格式）
+        document.getElementById('mailFrom').textContent = mail.from || '未知';
+        
+        document.getElementById('mailTo').textContent = mail.to || '未知';
+        document.getElementById('mailDate').textContent = mail.date || '未知';
+        
+        // 显示邮件正文
+        const mailBodyElement = document.getElementById('mailBody');
+        if (mail.body_type === 'html') {
+            mailBodyElement.innerHTML = mail.body || '(邮件内容为空)';
+        } else {
+            mailBodyElement.textContent = mail.body || '(邮件内容为空)';
+        }
+        
+        // 显示图片
+        displayImages(mail.images || []);
+        
+        // 显示附件
+        displayAttachments(mail.attachments || []);
+        
+        document.getElementById('mailDisplay').style.display = 'block';
+    }
+    
+    function displayImages(images) {
+        const imagesSection = document.getElementById('mailImages');
+        const imageContainer = document.getElementById('imageContainer');
+        
+        if (images && images.length > 0) {
+            imageContainer.innerHTML = '';
+            
+            images.forEach((image, index) => {
+                const imageItem = document.createElement('div');
+                imageItem.className = 'image-item';
+                
+                const img = document.createElement('img');
+                img.src = 'data:' + image.mime_type + ';base64,' + image.content;
+                img.alt = image.filename;
+                img.onclick = () => openImageModal(img.src);
+                
+                const imageInfo = document.createElement('div');
+                imageInfo.className = 'image-info';
+                imageInfo.innerHTML = `
+                    <div class="attachment-name">${escapeHtml(image.filename)}</div>
+                    <div class="attachment-meta">${formatFileSize(image.size)} • ${image.mime_type}</div>
+                `;
+                
+                imageItem.appendChild(img);
+                imageItem.appendChild(imageInfo);
+                imageContainer.appendChild(imageItem);
+            });
+            
+            imagesSection.style.display = 'block';
+        } else {
+            imagesSection.style.display = 'none';
+        }
+    }
+    
+    function displayAttachments(attachments) {
+        const attachmentsSection = document.getElementById('mailAttachments');
+        const attachmentList = document.getElementById('attachmentList');
+        
+        if (attachments && attachments.length > 0) {
+            attachmentList.innerHTML = '';
+            
+            attachments.forEach((attachment, index) => {
+                const attachmentItem = document.createElement('div');
+                attachmentItem.className = 'attachment-item';
+                
+                const icon = getFileIcon(attachment.mime_type);
+                
+                attachmentItem.innerHTML = `
+                    <div class="attachment-icon">${icon}</div>
+                    <div class="attachment-info">
+                        <div class="attachment-name">${escapeHtml(attachment.filename)}</div>
+                        <div class="attachment-meta">${formatFileSize(attachment.size)} • ${attachment.mime_type}</div>
+                    </div>
+                    <button class="attachment-download" onclick="downloadAttachment('${attachment.content}', '${escapeHtml(attachment.filename)}', '${attachment.mime_type}')">
+                        下载
+                    </button>
+                `;
+                
+                attachmentList.appendChild(attachmentItem);
+            });
+            
+            attachmentsSection.style.display = 'block';
+        } else {
+            attachmentsSection.style.display = 'none';
+        }
+    }
+    
+    function getFileIcon(mimeType) {
+        if (mimeType.startsWith('image/')) return '🖼️';
+        if (mimeType.startsWith('video/')) return '🎥';
+        if (mimeType.startsWith('audio/')) return '🎵';
+        if (mimeType.includes('pdf')) return '📄';
+        if (mimeType.includes('word') || mimeType.includes('doc')) return '📝';
+        if (mimeType.includes('excel') || mimeType.includes('sheet')) return '📊';
+        if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
+        return '📎';
+    }
+    
+    function openImageModal(src) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        modal.classList.add('show');
+        modalImg.src = src;
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('imageModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeImageModal();
+        }
+    });
+    
+    function downloadAttachment(base64Content, filename, mimeType) {
+        try {
+            // Convert base64 to blob
+            const byteCharacters = atob(base64Content);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: mimeType });
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showToast('附件下载已开始', 'success');
+        } catch (error) {
+            console.error('Download error:', error);
+            showToast('附件下载失败', 'error');
+        }
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Toast notification system
+    function showToast(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('toast-container');
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        // Handle multiline messages
+        if (message.includes('\n')) {
+            const lines = message.split('\n');
+            const content = document.createElement('div');
+            lines.forEach((line, index) => {
+                const lineDiv = document.createElement('div');
+                lineDiv.textContent = line;
+                if (index === 0) {
+                    lineDiv.style.fontWeight = 'bold';
+                    lineDiv.style.marginBottom = '8px';
+                } else if (line.trim().startsWith('•')) {
+                    lineDiv.style.marginLeft = '10px';
+                    lineDiv.style.fontSize = '13px';
+                    lineDiv.style.opacity = '0.9';
+                }
+                content.appendChild(lineDiv);
+            });
+            toast.appendChild(content);
+        } else {
+            toast.textContent = message;
+        }
+        
+        container.appendChild(toast);
+        
+        // Trigger animation
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+        
+        // Auto remove
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (container.contains(toast)) {
+                    container.removeChild(toast);
+                }
+            }, 300);
+        }, duration);
+    }
+    
+    // Legacy function for compatibility - redirect to toast
+    function showMessage(text, type) {
+        showToast(text, type);
+    }
+    
+    function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    }
+</script>
+{% endblock %}
